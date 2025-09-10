@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Coherence+ Breath Pacer — V6.1 (Dot-only, Quick Controls)</title>
+<style>
+  :root{--bg:#0b0f14;--card:#121822;--ink:#eaf2ff;--muted:#9fb0c9;--accent:#7cc4ff;--grid:#1a2330;--good:#19d87b}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:ui-sans-serif,system-ui,Arial}
+  header{padding:18px 14px;border-bottom:1px solid var(--grid)} h1{font-size:20px;margin:0}
+  .wrap{max-width:1000px;margin:0 auto;padding:14px;display:grid;gap:14px}
+  .card{background:var(--card);border:1px solid var(--grid);border-radius:16px;padding:14px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+  label{font-size:12px;color:var(--muted)} input,select{background:#0f1622;color:var(--ink);border:1px solid var(--grid);border-radius:10px;padding:6px 8px}
+  button{background:linear-gradient(180deg,#2a7fff,#0a63d6);border:0;color:white;padding:8px 14px;border-radius:12px;cursor:pointer;font-weight:600}
+  button.secondary{background:#1a2331}
+  .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#102136;border:1px solid var(--grid);color:var(--accent);font-weight:600}
+  .track{position:relative;height:230px;margin-top:8px;border:1px solid var(--grid);border-radius:14px;background:#0b1018;overflow:hidden}
+  .dot{position:absolute;width:18px;height:18px;border-radius:50%;background:var(--good);box-shadow:0 0 14px #19d87b88;transform:translate(-9px,-9px);display:none;z-index:2}
+  .vline{position:absolute;top:0;bottom:0;width:2px;background:linear-gradient(to bottom, transparent, #7cc4ff66, transparent);opacity:.9;pointer-events:none;z-index:1}
+  .labelbar{display:flex;justify-content:space-between;margin-top:6px;color:var(--muted);font-size:12px}
+  .timer{font-variant-numeric:tabular-nums}
+</style>
+<style id="dynStyles"></style>
+</head>
+<body>
+<header>
+  <h1>Coherence+ Breath Pacer — V6.1</h1>
+  <div style="color:var(--muted);font-size:14px">Solo pallino, partenza a metà Hold-EX, linee verticali di fase. Quick controls fuori da “Opzioni”. Ciclo predefinito 10s.</div>
+</header>
+<div class="wrap">
+  <div class="card">
+    <div class="row">
+      <div><label>Inspira (s)</label><br><input id="inS" type="number" min="0" step="0.1" value="4.5"></div>
+      <div><label>Pausa IN (s)</label><br><input id="h1S" type="number" min="0" step="0.1" value="0.5"></div>
+      <div><label>Espira (s)</label><br><input id="exS" type="number" min="0" step="0.1" value="4.5"></div>
+      <div><label>Pausa EX (s)</label><br><input id="h2S" type="number" min="0" step="0.1" value="0.5"></div>
+      <div><label>Durata sessione</label><br>
+        <input id="sessMin" type="number" min="1" step="1" value="5" style="width:80px"> min
+      </div>
+      <div><label>Countdown</label><br>
+        <span id="countdown" class="pill timer">05:00</span>
+      </div>
+      <div><label>Ciclo</label><div id="cyclePill" class="pill">10.0s • 6.0 atti/min</div></div>
+    </div>
+
+    <!-- Quick controls fuori da Opzioni -->
+    <div class="row" id="quickControls" style="margin-top:8px">
+      <div><label>Preset audio</label><br>
+        <select id="audioPreset">
+          <option value="none" selected>— nessuno —</option>
+          <option value="brightwarm">Bright IN / Warm EX</option>
+          <option value="susrelax">Sus relax</option>
+          <option value="deepground">Deep grounding</option>
+          <option value="focusflow">Focus flow</option>
+          <option value="zenlow">Zen low</option>
+          <option value="openpad">Open sus</option>
+          <option value="bellpad">Bell pad</option>
+          <option value="lowdrone">Low drone</option>
+          <option value="softpiano">Soft piano</option>
+        </select>
+      </div>
+      <div><label>Volume</label><br><input id="vol" type="range" min="0" max="1" step="0.01" value="0.25"></div>
+      <div><label>Ciclo target (s)</label><br><input id="cycleTarget" type="number" value="10.0" step="0.1" style="width:90px"></div>
+      <div><label>EX % del ciclo</label><br>
+        <input id="exPct" type="range" min="45" max="65" step="1" value="50"> <span id="exPctLbl" class="pill">50%</span>
+      </div>
+      <button id="applyCycle" class="secondary">Applica ciclo</button>
+    </div>
+
+    <details id="optPanel" class="card" style="margin-top:10px">
+      <summary style="cursor:pointer;font-weight:700">Opzioni</summary>
+      <div class="row" style="margin-top:8px">
+        <div><label>Modo audio</label><br>
+          <select id="audioMode">
+            <option value="single">Nota singola</option>
+            <option value="chord" selected>Armonico</option>
+          </select>
+        </div>
+        <div><label>Strumento</label><br>
+          <select id="inst">
+            <option value="sine" selected>Sinusoide</option>
+            <option value="triangle">Triangolare</option>
+            <option value="square">Quadra</option>
+            <option value="sawtooth">Dente di sega</option>
+          </select>
+        </div>
+        <div><label>Nota IN (Hz)</label><br><input id="fHi" type="number" value="660" step="1" style="width:100px"></div>
+        <div><label>Nota EX (Hz)</label><br><input id="fLo" type="number" value="440" step="1" style="width:100px"></div>
+        <div><label>Tonica IN (Hz)</label><br><input id="baseHzIn" type="number" value="440" step="1" style="width:100px"></div>
+        <div><label>Tonica EX (Hz)</label><br><input id="baseHzEx" type="number" value="220" step="1" style="width:100px"></div>
+        <div><label>Accordo IN</label><br>
+          <select id="chordIn">
+            <option value="minor">Minore</option>
+            <option value="major" selected>Maggiore</option>
+            <option value="sus2">Sus2</option>
+            <option value="sus4">Sus4</option>
+          </select>
+        </div>
+        <div><label>Accordo EX</label><br>
+          <select id="chordEx">
+            <option value="major">Maggiore</option>
+            <option value="minor" selected>Minore</option>
+            <option value="sus2">Sus2</option>
+            <option value="sus4">Sus4</option>
+          </select>
+        </div>
+        <div><label>Fade in/out (ms)</label><br>
+          <input id="fadeIn" type="number" value="500" step="10" style="width:80px"> /
+          <input id="fadeOut" type="number" value="500" step="10" style="width:80px">
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div><label>Mantieni schermo attivo</label><br><input id="keepAwake" type="checkbox"></div>
+        <div><label>Audio in background (Android)</label><br><input id="bgAudioToggle" type="checkbox"></div>
+      </div>
+    </details>
+
+    <div class="row">
+      <button id="start">Start</button>
+      <button id="stop" class="secondary">Stop</button>
+    </div>
+  </div>
+
+  <div class="card"><h3>Pista</h3>
+    <div id="track" class="track">
+      <div id="vH2aEnd" class="vline"></div>
+      <div id="vInEnd" class="vline"></div>
+      <div id="vH1End" class="vline"></div>
+      <div id="vExEnd" class="vline"></div>
+      <div id="dot" class="dot"></div>
+    </div>
+    <div class="labelbar" id="labels">
+      <span id="labH2a">Hold EX</span>
+      <span id="labIn">Inspira</span>
+      <span id="labH1">Hold</span>
+      <span id="labEx">Espira</span>
+      <span id="labH2b">Hold EX</span>
+    </div>
+  </div>
+</div>
+
+<audio id="bgAudio" style="display:none" playsinline></audio>
+
+<script>
+// ======= Stato & UI =======
+let running=false, endAt=0, cycleInt=null, countdownInt=null, timeouts=[];
+let seg=[4.5,0.5,4.5,0.5];
+const $=id=>document.getElementById(id);
+const els={
+  inS: $("inS"), h1S: $("h1S"), exS: $("exS"), h2S: $("h2S"),
+  sessMin: $("sessMin"), countdown: $("countdown"),
+  audioMode: $("audioMode"), inst: $("inst"), vol: $("vol"), fadeIn: $("fadeIn"), fadeOut: $("fadeOut"),
+  fHi: $("fHi"), fLo: $("fLo"), baseHzIn: $("baseHzIn"), baseHzEx: $("baseHzEx"), chordIn: $("chordIn"), chordEx: $("chordEx"),
+  cycleTarget: $("cycleTarget"), exPct: $("exPct"), exPctLbl: $("exPctLbl"), applyCycle: $("applyCycle"),
+  audioPreset: $("audioPreset"),
+  dot: $("dot"), pill: $("cyclePill"),
+  labels: $("labels"), labH2a: $("labH2a"), labIn: $("labIn"), labH1: $("labH1"), labEx: $("labEx"), labH2b: $("labH2b"),
+  keepAwake: $("keepAwake"), bgAudioToggle: $("bgAudioToggle"), bgAudio: $("bgAudio"),
+  vH2aEnd: $("vH2aEnd"), vInEnd: $("vInEnd"), vH1End: $("vH1End"), vExEnd: $("vExEnd")
+};
+
+function updateFromInputs(){
+  seg=[parseFloat(els.inS.value)||0, parseFloat(els.h1S.value)||0, parseFloat(els.exS.value)||0, parseFloat(els.h2S.value)||0];
+  const cyc=Math.max(seg.reduce((a,b)=>a+b,0), 0.001);
+  els.pill.textContent = `${cyc.toFixed(1)}s • ${(60/cyc).toFixed(1)} atti/min`;
+  sizeLabels();
+  positionGuides();
+}
+["inS","h1S","exS","h2S"].forEach(id=> $(id).addEventListener('input', ()=>{updateFromInputs(); if(running) restart(); }));
+els.exPct.addEventListener('input', ()=> els.exPctLbl.textContent = els.exPct.value + '%');
+els.applyCycle.addEventListener('click', ()=>{ applyCycleFromTarget(parseFloat(els.cycleTarget.value)||10, parseInt(els.exPct.value)||50); });
+els.audioPreset && els.audioPreset.addEventListener('change', ()=> applyAudioPreset(els.audioPreset.value));
+updateFromInputs();
+
+// ======= Labels sizing =======
+function sizeLabels(){
+  const [dIn,dH1,dEx,dH2]=seg; const total=Math.max(dIn+dH1+dEx+dH2,0.001);
+  const wH2a=100*(dH2/2)/total, wIn=100*dIn/total, wH1=100*dH1/total, wEx=100*dEx/total, wH2b=100*(dH2/2)/total;
+  els.labH2a.style.flex=`0 0 ${wH2a}%`;
+  els.labIn.style.flex=`0 0 ${wIn}%`;
+  els.labH1.style.flex=`0 0 ${wH1}%`;
+  els.labEx.style.flex=`0 0 ${wEx}%`;
+  els.labH2b.style.flex=`0 0 ${wH2b}%`;
+  [els.labH2a,els.labIn,els.labH1,els.labEx,els.labH2b].forEach(el=> el.style.textAlign='center');
+}
+
+// ======= Keyframes (simmetrici, start a metà H2) =======
+function buildKeyframes(){
+  const [dIn,dH1,dEx,dH2]=seg; const total=Math.max(dIn+dH1+dEx+dH2,0.001);
+  const yTop=15, yBot=85;
+  const p0 = 100*((dH2/2)/total);
+  const pInEnd = 100*((dH2/2 + dIn)/total);
+  const pH1End = 100*((dH2/2 + dIn + dH1)/total);
+  const pExEnd = 100*((dH2/2 + dIn + dH1 + dEx)/total);
+  const css=`@keyframes breatheX{0%{left:0%}100%{left:100%}}
+@keyframes breatheY{0%{top:${yBot}%} ${p0}%{top:${yBot}%} ${pInEnd}%{top:${yTop}%} ${pH1End}%{top:${yTop}%} ${pExEnd}%{top:${yBot}%} 100%{top:${yBot}%}}`;
+  document.getElementById('dynStyles').textContent=css;
+  // posiziona le guide verticali
+  if(els.vH2aEnd) els.vH2aEnd.style.left = p0 + '%';
+  if(els.vInEnd)  els.vInEnd.style.left  = pInEnd + '%';
+  if(els.vH1End)  els.vH1End.style.left  = pH1End + '%';
+  if(els.vExEnd)  els.vExEnd.style.left  = pExEnd + '%';
+  const totalDur = total;
+  els.dot.style.animation=`breatheX ${totalDur}s linear infinite, breatheY ${totalDur}s linear infinite`;
+  return totalDur;
+}
+function positionGuides(){
+  const [dIn,dH1,dEx,dH2]=seg; const total=Math.max(dIn+dH1+dEx+dH2,0.001);
+  const p0 = 100*((dH2/2)/total);
+  const pInEnd = 100*((dH2/2 + dIn)/total);
+  const pH1End = 100*((dH2/2 + dIn + dH1)/total);
+  const pExEnd = 100*((dH2/2 + dIn + dH1 + dEx)/total);
+  if(els.vH2aEnd) els.vH2aEnd.style.left = p0 + '%';
+  if(els.vInEnd)  els.vInEnd.style.left  = pInEnd + '%';
+  if(els.vH1End)  els.vH1End.style.left  = pH1End + '%';
+  if(els.vExEnd)  els.vExEnd.style.left  = pExEnd + '%';
+}
+
+// ======= Audio (WebAudio) =======
+let audioCtx=null, master=null, oscMain=null, chordOscs=[];
+function audioStart(){
+  if(audioCtx) return;
+  audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+  master=audioCtx.createGain(); master.gain.value=0.0001;
+  const wantBG = els.bgAudioToggle && els.bgAudioToggle.checked;
+  if(wantBG){
+    const mediaDest = audioCtx.createMediaStreamDestination();
+    master.connect(mediaDest); // SOLO verso mediaDest per evitare raddoppio
+    els.bgAudio.srcObject = mediaDest.stream; els.bgAudio.loop=true; els.bgAudio.play().catch(()=>{});
+  } else {
+    master.connect(audioCtx.destination);
+  }
+}
+function audioStop(){ if(!audioCtx) return; try{ if(oscMain){try{oscMain.stop();}catch{}}; chordOscs.forEach(x=>{try{x.o.stop();}catch{}}); if(els.bgAudio){ try{ els.bgAudio.pause(); els.bgAudio.srcObject=null; }catch{} } audioCtx.close(); }catch{} audioCtx=null; master=null; oscMain=null; chordOscs=[]; }
+function fadeTo(val,ms){ if(!audioCtx||!master) return; const t=audioCtx.currentTime; const tau=Math.max(ms,1)/1000; master.gain.cancelScheduledValues(t); master.gain.setTargetAtTime(val,t,tau/3); }
+function silence(){ fadeTo(0.0001, parseFloat(els.fadeOut.value)||500); }
+function startSingle(kind){ if(!audioCtx) audioStart(); if(!oscMain){ oscMain=audioCtx.createOscillator(); oscMain.type=els.inst.value; oscMain.connect(master); oscMain.start(); }
+  const f=(kind==='in')? (parseFloat(els.fHi.value)||660):(parseFloat(els.fLo.value)||440);
+  const t=audioCtx.currentTime; oscMain.type=els.inst.value; oscMain.frequency.setTargetAtTime(f,t,0.03); fadeTo(parseFloat(els.vol.value), parseFloat(els.fadeIn.value)||500); }
+function chordFreqs(base,type){ const map={major:[1,5/4,3/2], minor:[1,6/5,3/2], sus2:[1,9/8,3/2], sus4:[1,4/3,3/2]}; const ratios=map[type]||map.major; return ratios.map(r=>base*r); }
+function startChord(kind){ if(!audioCtx) audioStart(); if(chordOscs.length===0){ for(let i=0;i<3;i++){ const o=audioCtx.createOscillator(); o.type=els.inst.value; const g=audioCtx.createGain(); g.gain.value=0; o.connect(g).connect(master); o.start(); chordOscs.push({o,g}); } }
+  const base = (kind==='in') ? (parseFloat(els.baseHzIn.value)||440) : (parseFloat(els.baseHzEx.value)||220);
+  const type = (kind==='in') ? els.chordIn.value : els.chordEx.value; const freqs=chordFreqs(base,type); const t=audioCtx.currentTime;
+  chordOscs.forEach((x,i)=>{ x.o.type=els.inst.value; x.o.frequency.setTargetAtTime(freqs[i],t,0.02); x.g.gain.cancelScheduledValues(t); x.g.gain.setTargetAtTime(0.45/(i+1),t,0.02); });
+  fadeTo(parseFloat(els.vol.value), parseFloat(els.fadeIn.value)||500);
+}
+
+// ======= Scheduling =======
+function clearTimers(){ if(cycleInt) clearInterval(cycleInt); cycleInt=null; timeouts.forEach(clearTimeout); timeouts=[]; if(countdownInt) clearInterval(countdownInt); countdownInt=null; }
+function schedulePhases(total){
+  const [dIn,dH1,dEx,dH2]=seg; const mode=els.audioMode.value;
+  const runOnce=()=>{
+    let t0=0;
+    if(dH2>0){ const ms=(dH2/2)*1000; timeouts.push(setTimeout(()=>{silence();}, t0)); t0+=ms; }
+    timeouts.push(setTimeout(()=>{ if(mode==='single') startSingle('in'); else startChord('in'); }, t0)); t0+=dIn*1000;
+    if(dH1>0){ timeouts.push(setTimeout(()=>{silence();}, t0)); t0+=dH1*1000; }
+    timeouts.push(setTimeout(()=>{ if(mode==='single') startSingle('ex'); else startChord('ex'); }, t0)); t0+=dEx*1000;
+    if(dH2>0){ timeouts.push(setTimeout(()=>{silence();}, t0)); }
+  };
+  runOnce();
+  cycleInt=setInterval(runOnce, total*1000);
+}
+
+// ======= Countdown =======
+function fmt(s){ s=Math.max(0,Math.floor(s)); const m=Math.floor(s/60).toString().padStart(2,'0'); const ss=(s%60).toString().padStart(2,'0'); return `${m}:${ss}`; }
+function startCountdown(){ const dur=(parseInt(els.sessMin.value)||5)*60; endAt=Date.now()+dur*1000; els.countdown.textContent=fmt(dur); countdownInt=setInterval(()=>{ const left=(endAt-Date.now())/1000; els.countdown.textContent=fmt(left); if(left<=0){ stop(); } }, 250); }
+
+// ======= Helpers =======
+function applyCycleFromTarget(totalSec, exPercent){
+  const h1 = parseFloat(els.h1S.value)||0;
+  const h2 = parseFloat(els.h2S.value)||0;
+  const active = Math.max(0, (parseFloat(totalSec)||0) - (h1 + h2));
+  const ex = active * ((parseFloat(exPercent)||0)/100);
+  const inn = Math.max(0, active - ex);
+  els.inS.value = inn.toFixed(2);
+  els.exS.value = ex.toFixed(2);
+  updateFromInputs();
+}
+function applyAudioPreset(preset){
+  if(preset==='brightwarm'){ els.baseHzIn.value=440; els.baseHzEx.value=220; els.chordIn.value='major'; els.chordEx.value='minor'; els.fHi.value=660; els.fLo.value=440; els.inst.value='sine'; }
+  else if(preset==='susrelax'){ els.baseHzIn.value=392; els.baseHzEx.value=196; els.chordIn.value='major'; els.chordEx.value='sus2'; els.fHi.value=588; els.fLo.value=294; els.inst.value='sine'; }
+  else if(preset==='deepground'){ els.baseHzIn.value=330; els.baseHzEx.value=165; els.chordIn.value='major'; els.chordEx.value='minor'; els.fHi.value=495; els.fLo.value=220; els.inst.value='triangle'; }
+  else if(preset==='focusflow'){ els.baseHzIn.value=440; els.baseHzEx.value=220; els.chordIn.value='major'; els.chordEx.value='sus2'; els.fHi.value=660; els.fLo.value=330; els.inst.value='triangle'; }
+  else if(preset==='zenlow'){ els.baseHzIn.value=294; els.baseHzEx.value=147; els.chordIn.value='sus4'; els.chordEx.value='minor'; els.fHi.value=441; els.fLo.value=220; els.inst.value='sine'; }
+  else if(preset==='openpad'){ els.baseHzIn.value=392; els.baseHzEx.value=196; els.chordIn.value='sus4'; els.chordEx.value='sus2'; els.fHi.value=588; els.fLo.value=294; els.inst.value='sine'; }
+  else if(preset==='bellpad'){ els.baseHzIn.value=523.25; els.baseHzEx.value=261.63; els.chordIn.value='major'; els.chordEx.value='sus2'; els.fHi.value=784; els.fLo.value=392; els.inst.value='sine'; }
+  else if(preset==='lowdrone'){ els.baseHzIn.value=220; els.baseHzEx.value=110; els.chordIn.value='sus4'; els.chordEx.value='minor'; els.fHi.value=330; els.fLo.value=165; els.inst.value='sine'; }
+  else if(preset==='softpiano'){ els.baseHzIn.value=392; els.baseHzEx.value=196; els.chordIn.value='major'; els.chordEx.value='sus2'; els.fHi.value=587; els.fLo.value=294; els.inst.value='triangle'; }
+}
+
+// Wake Lock (opzionale)
+let wakeLock=null;
+async function requestWakeLock(){ try{ if('wakeLock' in navigator && !wakeLock){ wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', ()=>{ wakeLock=null; }); } }catch(e){} }
+function releaseWakeLock(){ try{ if(wakeLock){ wakeLock.release(); wakeLock=null; } }catch(e){} }
+
+// ======= Session control =======
+function startCore(withCountdown){ updateFromInputs(); audioStart(); els.dot.style.display='block'; const total=buildKeyframes(); schedulePhases(total); if(withCountdown) startCountdown(); running=true; }
+function start(){ if(running) return; if(els.keepAwake && els.keepAwake.checked) requestWakeLock(); startCore(true); }
+function stop(){ if(!running) { silence(); audioStop(); els.dot.style.display='none'; releaseWakeLock(); return; } running=false; clearTimers(); silence(); setTimeout(()=>{ audioStop(); }, Math.max(parseFloat(els.fadeOut.value)||500, 160)); els.dot.style.display='none'; releaseWakeLock(); }
+function restart(){ stop(); setTimeout(()=> startCore(true), 180); }
+
+// ======= Bind =======
+$("start").addEventListener('click', start);
+$("stop").addEventListener('click', stop);
+
+// init defaults: 10s cycle, EX 50%, dot hidden until start
+els.exPct.value=50; els.exPctLbl.textContent='50%';
+applyCycleFromTarget(parseFloat(els.cycleTarget.value)||10, 50);
+</script>
+</body>
+</html>
