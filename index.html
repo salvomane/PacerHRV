@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Coherence+ Breath Pacer — V6.1 (Dot-only, Quick Controls)</title>
+<title>Heart Pacer</title>
+<meta name="description" content="Heart Pacer — pacer di respirazione per coerenza HRV: dot-only, linee di fase, preset audio, controlli rapidi. Imposta ciclo ed EX%, premi Start e segui il pallino.">
 <style>
   :root{--bg:#0b0f14;--card:#121822;--ink:#eaf2ff;--muted:#9fb0c9;--accent:#7cc4ff;--grid:#1a2330;--good:#19d87b}
   *{box-sizing:border-box}
@@ -26,8 +27,10 @@
 </head>
 <body>
 <header>
-  <h1>Coherence+ Breath Pacer — V6.1</h1>
-  <div style="color:var(--muted);font-size:14px">Solo pallino, partenza a metà Hold-EX, linee verticali di fase. Quick controls fuori da “Opzioni”. Ciclo predefinito 10s.</div>
+  <h1>Heart Pacer</h1>
+  <div style="color:var(--muted);font-size:14px">
+    Pacer di respirazione per la <strong>coerenza HRV</strong>. Come si usa: imposta <em>Ciclo target</em> (es. 10 s) ed <em>EX%</em>, scegli un <em>Preset audio</em> e premi <strong>Start</strong>. Respira seguendo il pallino: parte da <em>metà Hold-EX</em>, poi <em>Inspira → Hold → Espira → Hold-EX</em>. Le linee verticali indicano i confini delle fasi. L'audio cambia tra IN (maggiore) ed EX (minore); il suono si interrompe nelle pause. Opzionale: <em>Audio in background</em> e <em>Mantieni schermo attivo</em>.
+  </div>
 </header>
 <div class="wrap">
   <div class="card">
@@ -45,7 +48,7 @@
       <div><label>Ciclo</label><div id="cyclePill" class="pill">10.0s • 6.0 atti/min</div></div>
     </div>
 
-    <!-- Quick controls fuori da Opzioni -->
+    <!-- Quick controls -->
     <div class="row" id="quickControls" style="margin-top:8px">
       <div><label>Preset audio</label><br>
         <select id="audioPreset">
